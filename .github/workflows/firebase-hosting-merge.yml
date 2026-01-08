@@ -9,16 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # THIS STEP WILL SHOW US THE REAL FOLDER NAME
-      - name: Debug Folder Names
-        run: ls -R
+      - name: Install Dependencies
+        # No 'cd' or 'working-directory' needed because package.json is in the root
+        run: npm install
 
-      - name: Install and Build
-        run: |
-          # Change 'client' to exactly what you see in the 'Debug' log above
-           cd client
-          npm install
-          npm run build
+      - name: Build Project
+        run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           CI: false
@@ -29,4 +25,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TOLL_PROJECT_479605 }}
           channelId: live
           projectId: toll-project-479605
-          entryPoint: client
+          # Remove entryPoint because firebase.json is in the root
