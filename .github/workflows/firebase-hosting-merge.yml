@@ -1,29 +1,7 @@
-name: Deploy to Firebase Hosting on merge
-on:
-  push:
-    branches:
-      - master
-jobs:
-  build_and_deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Dependencies
-        # Removed 'working-directory' because files are at the root
-        run: npm install
-
-      - name: Build Project
-        run: npm run build
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          CI: false # Prevents exit code 1 due to minor warnings
-
-      - name: Deploy to Firebase
-        uses: FirebaseExtended/action-hosting-deploy@v0
+- uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
+          # This name must match your GitHub Secret exactly
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TOLL_PROJECT_479605 }}
           channelId: live
           projectId: toll-project-479605
-          # Removed entryPoint because firebase.json is at the root
