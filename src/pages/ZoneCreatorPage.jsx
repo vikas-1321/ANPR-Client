@@ -2,10 +2,10 @@ import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { GoogleMap, DrawingManager } from '@react-google-maps/api';
 import { useNavigate } from 'react-router-dom';
+import API_URL from '../config/api'; // Correctly importing your new API_URL config
 
 const containerStyle = { width: '100%', height: '300px' };
 const defaultPos = { lat: 12.9716, lng: 77.5946 };
-
 
 function ZoneCreatorPage() {
     const { isLoaded, setZones } = useContext(AppContext);
@@ -15,7 +15,7 @@ function ZoneCreatorPage() {
     const [localStatus, setLocalStatus] = useState({ message: 'Use the drawing tool to outline the zone.', isError: false });
     const navigate = useNavigate();
     const [maxDistance, setMaxDistance] = useState('');
-const [flatRate, setFlatRate] = useState('');
+    const [flatRate, setFlatRate] = useState('');
 
     const drawingLibReady = typeof window !== 'undefined' && !!window.google?.maps?.drawing;
 
@@ -48,23 +48,21 @@ const [flatRate, setFlatRate] = useState('');
         setNewZoneCoordinates(coords);
         setLocalStatus({ message: 'Polygon drawn. Enter a name and click save.', isError: false });
         
-        // Disable drawing mode immediately
         if (polygon.getMap()) {
             const drawingManager = polygon.getMap().__SECRET_ACCESS_drawingManager;
             if (drawingManager && drawingManager.setDrawingMode) drawingManager.setDrawingMode(null);
         }
     };
     
-    // Helper to calculate the center of a polygon
-const calculateCenter = (coords) => {
-    if (!coords || coords.length === 0) return defaultPos;
-    const latSum = coords.reduce((sum, coord) => sum + coord.lat, 0);
-    const lngSum = coords.reduce((sum, coord) => sum + coord.lng, 0);
-    return {
-        lat: latSum / coords.length,
-        lng: lngSum / coords.length
+    const calculateCenter = (coords) => {
+        if (!coords || coords.length === 0) return defaultPos;
+        const latSum = coords.reduce((sum, coord) => sum + coord.lat, 0);
+        const lngSum = coords.reduce((sum, coord) => sum + coord.lng, 0);
+        return {
+            lat: latSum / coords.length,
+            lng: lngSum / coords.length
+        };
     };
-};
 
     const handleSaveZone = async () => {
         if (!zoneName.trim()) {
@@ -76,30 +74,27 @@ const calculateCenter = (coords) => {
             return;
         }
         if (!drawingLibReady) {
-            setLocalStatus({ message: 'Maps library not ready yet. Please wait a moment and try again.', isError: true });
+            setLocalStatus({ message: 'Maps library not ready yet.', isError: true });
             return;
         }
-        const payload = {
-        name: zoneName.trim(),
-        coordinates: newZoneCoordinates,
-        center: calculateCenter(newZoneCoordinates),
-        max_distance: parseFloat(maxDistance) || 5000, // Fallback to 5km
-        flat_rate: parseFloat(flatRate) || 150        // Fallback to ₹150
-    };
+
         setLocalStatus({ message: 'Saving zone...', isError: false });
 
-        // Calculate center for Geohash generation on the backend
-        const bounds = new window.google.maps.LatLngBounds();
-        newZoneCoordinates.forEach(coord => {
-            bounds.extend(new window.google.maps.LatLng(coord.lat, coord.lng));
-        });
-        const center = bounds.getCenter().toJSON();
+        // Corrected Payload with all required fields
+        const payload = {
+            name: zoneName.trim(),
+            coordinates: newZoneCoordinates,
+            center: calculateCenter(newZoneCoordinates),
+            max_distance: parseFloat(maxDistance) || 5000, 
+            flat_rate: parseFloat(flatRate) || 150        
+        };
         
         try {
-            const response = await fetch('http://localhost:5000/api/zones', {
+            // FIXED: Using API_URL variable instead of hardcoded localhost
+            const response = await fetch(`${API_URL}/zones`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: zoneName, coordinates: newZoneCoordinates, center }),
+                body: JSON.stringify(payload), // FIXED: Using the payload variable here
             });
             const data = await response.json();
             
@@ -107,11 +102,13 @@ const calculateCenter = (coords) => {
                 setLocalStatus({ message: data.message, isError: false });
                 setZoneName('');
                 setNewZoneCoordinates(null);
+                setFlatRate('');
+                setMaxDistance('');
                 currentPolygon.setMap(null);
                 setCurrentPolygon(null);
                 
-                // Trigger a full zone reload in App.jsx
-                const zonesResponse = await fetch('http://localhost:5000/api/zones');
+                // FIXED: Using API_URL for fetching updated zones
+                const zonesResponse = await fetch(`${API_URL}/zones`);
                 const zonesData = await zonesResponse.json();
                 if (zonesData.success) setZones(zonesData.zones);
 
@@ -123,7 +120,6 @@ const calculateCenter = (coords) => {
             setLocalStatus({ message: "Network Error: Could not reach the server.", isError: true });
         }
     };
-
 
     if (!isLoaded) return <div className="card">Loading Maps...</div>;
 
@@ -159,14 +155,14 @@ const calculateCenter = (coords) => {
             </div>
             
             <div className="form-group" style={{ marginTop: '1rem' }}>
-                <label className="form-label">Max Zone Distance (meters) - Situation B Fallback</label>
+                <label className="form-label">Max Zone Distance (meters)</label>
                 <input 
                     type="number" className="form-input" placeholder="e.g. 5000"
                     value={maxDistance} onChange={(e) => setMaxDistance(e.target.value)}
                 />
             </div>
             <div className="form-group">
-                <label className="form-label">Flat Rate Toll (₹) - Situation C</label>
+                <label className="form-label">Flat Rate Toll (₹)</label>
                 <input 
                     type="number" className="form-input" placeholder="e.g. 150"
                     value={flatRate} onChange={(e) => setFlatRate(e.target.value)}
