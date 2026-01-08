@@ -12,7 +12,7 @@ jobs:
       - name: Install and Build
         # We manually move into 'client' and run the commands there
         run: |
-          cd client
+          
           npm install
           npm run build
         env:
