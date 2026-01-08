@@ -9,15 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        # Tells GitHub to go into the client folder to find package.json
-        working-directory: client
-        run: npm install
-
-      - name: Build Project
-        # Tells GitHub to build the project inside the client folder
-        working-directory: client
-        run: npm run build
+      - name: Install and Build
+        # We manually move into 'client' and run the commands there
+        run: |
+          cd client
+          npm install
+          npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           CI: false
@@ -28,5 +25,5 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TOLL_PROJECT_479605 }}
           channelId: live
           projectId: toll-project-479605
-          # Tells Firebase to look for firebase.json inside the client folder
+          # Tells Firebase to find firebase.json inside the client folder
           entryPoint: client
