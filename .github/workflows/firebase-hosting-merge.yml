@@ -9,10 +9,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # THIS STEP WILL SHOW US THE REAL FOLDER NAME
+      - name: Debug Folder Names
+        run: ls -R
+
       - name: Install and Build
-        # We manually move into 'client' and run the commands there
         run: |
-          
+          # Change 'client' to exactly what you see in the 'Debug' log above
+           
           npm install
           npm run build
         env:
@@ -25,5 +29,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TOLL_PROJECT_479605 }}
           channelId: live
           projectId: toll-project-479605
-          # Tells Firebase to find firebase.json inside the client folder
           entryPoint: client
