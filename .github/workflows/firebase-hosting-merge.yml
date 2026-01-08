@@ -16,6 +16,7 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          CI: false
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
