@@ -1,6 +1,8 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
+// 1. IMPORT YOUR API INSTANCE
+import api from '../config/api'; 
 
 function PathwayManagerPage() {
     const { zones, isLoaded } = useContext(AppContext);
@@ -46,7 +48,6 @@ function PathwayManagerPage() {
             return;
         }
 
-        // Basic validation: check if all cameras exist in the zone
         const availableCameras = Object.keys(selectedZone?.operators || {});
         const isValid = newPath.every(id => availableCameras.includes(id));
         
@@ -74,22 +75,25 @@ function PathwayManagerPage() {
         setLocalStatus({ message: 'Saving pathways...', isError: false });
 
         try {
-            const response = await fetch(`http://localhost:5000/api/zones/${selectedZoneId}/pathways`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ operatorPathways: currentPathways }),
+            // 2. USE API.PUT INSTEAD OF FETCH
+            // This targets: https://your-render-url.com/api/zones/:id/pathways
+            const response = await api.put(`/zones/${selectedZoneId}/pathways`, { 
+                operatorPathways: currentPathways 
             });
-            const data = await response.json();
+            
+            // Axios automatically parses JSON into 'data'
+            const data = response.data;
             
             if (data.success) {
                 setLocalStatus({ message: data.message, isError: false });
-                
             } else {
-                setLocalStatus({ message: data.message, isError: true });
+                setLocalStatus({ message: data.message || 'Failed to save.', isError: true });
             }
         } catch (error) {
             console.error('Failed to save pathways:', error);
-            setLocalStatus({ message: 'Network Error: Could not reach the server.', isError: true });
+            // 3. IMPROVED ERROR MESSAGE
+            const errMsg = error.response?.data?.message || 'Network Error: Could not reach the server.';
+            setLocalStatus({ message: errMsg, isError: true });
         }
     };
 
@@ -144,7 +148,7 @@ function PathwayManagerPage() {
                         <p style={{color: 'var(--text-dim)', fontSize: '0.85rem'}}>No pathways defined yet. Add one above.</p>
                     ) : (
                         currentPathways.map((path, index) => (
-                            <div key={index} className="pathway-item">
+                            <div key={index} className="pathway-item" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem'}}>
                                 <span>{path.path.join(' ➔ ')}</span>
                                 <button onClick={() => handleRemovePathway(index)} className="btn btn-small btn-red">Remove</button>
                             </div>
@@ -163,9 +167,11 @@ function PathwayManagerPage() {
                 Save Pathways to Firebase
             </button>
             
-            <div id="pathway-status" className={`status-box ${localStatus.isError ? 'status-error' : 'status-warning'}`}>
-                {localStatus.message}
-            </div>
+            {localStatus.message && (
+                <div id="pathway-status" className={`status-box ${localStatus.isError ? 'status-error' : 'status-warning'}`}>
+                    {localStatus.message}
+                </div>
+            )}
             
             <button onClick={() => navigate('/')} className="btn btn-gray" style={{marginTop: '0.5rem'}}>Back to Menu</button>
         </section>

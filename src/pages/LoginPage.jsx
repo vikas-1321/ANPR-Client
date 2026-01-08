@@ -1,6 +1,8 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext'; 
 import { useNavigate } from 'react-router-dom';
+// 1. IMPORT YOUR API INSTANCE
+import api from '../config/api';; 
 
 function LoginPage() {
     const { zones, setLoggedInOperator } = useContext(AppContext);
@@ -15,47 +17,46 @@ function LoginPage() {
         [zones, selectedZoneId]
     );
 
-  const cameraOptions = useMemo(() => {
-    if (!selectedZone) return [];
-    return Object.keys(selectedZone.operators || {}); // It looks for the keys in the 'operators' map
-}, [selectedZone]);
+    const cameraOptions = useMemo(() => {
+        if (!selectedZone) return [];
+        return Object.keys(selectedZone.operators || {});
+    }, [selectedZone]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setLocalStatus({ message: 'Logging in...', isError: false });
 
-        if (!selectedZoneId) {
-            setLocalStatus({ message: "Please select a toll zone.", isError: true });
-            return;
-        }
-        if (!selectedCameraId) {
-            setLocalStatus({ message: "Please select a camera to login.", isError: true });
-            return;
-        }
-        if (!password) {
-            setLocalStatus({ message: "Password is required.", isError: true });
+        if (!selectedZoneId || !selectedCameraId || !password) {
+            setLocalStatus({ message: "Please fill in all fields.", isError: true });
             return;
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cameraID: selectedCameraId, password }),
+            // 2. USE API.POST INSTEAD OF FETCH
+            // This automatically targets: https://your-render-url.com/api/auth/login
+            const response = await api.post('/auth/login', { 
+                cameraID: selectedCameraId, 
+                password 
             });
 
-            const data = await response.json();
+            // Axios puts the response data inside a 'data' property automatically
+            const data = response.data;
 
             if (data.success) {
                 setLocalStatus({ message: data.message, isError: false });
                 setLoggedInOperator(data.operator);
                 navigate('/operator'); 
             } else {
-                setLocalStatus({ message: data.message, isError: true });
+                setLocalStatus({ message: data.message || "Login failed.", isError: true });
             }
         } catch (error) {
-            console.error("Fetch error:", error);
-            setLocalStatus({ message: "Network Error: Could not reach the Express server.", isError: true });
+            console.error("Login error:", error);
+            
+            // 3. IMPROVED ERROR HANDLING
+            const errorMessage = error.response?.data?.message || 
+                               "Network Error: Could not reach the Express server.";
+            
+            setLocalStatus({ message: errorMessage, isError: true });
         }
     };
 
@@ -96,12 +97,6 @@ function LoginPage() {
                             <option key={cameraId} value={cameraId}>{cameraId}</option>
                         ))}
                     </select>
-                    {!selectedZone && (
-                        <p className="form-help">Choose a toll zone to see its registered cameras.</p>
-                    )}
-                    {selectedZone && cameraOptions.length === 0 && (
-                        <p className="form-help">No cameras registered in this zone yet.</p>
-                    )}
                 </div>
                 <div className="form-group">
                     <label htmlFor="login-password" className="form-label">Password</label>

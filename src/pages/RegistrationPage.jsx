@@ -2,6 +2,8 @@ import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext';
 import { GoogleMap, Marker, Polygon } from '@react-google-maps/api';
 import { useNavigate } from 'react-router-dom';
+// 1. IMPORT YOUR API INSTANCE
+import api from '../api'; 
 
 const containerStyle = { width: '100%', height: '300px' };
 const defaultPos = { lat: 12.9716, lng: 77.5946 };
@@ -40,7 +42,6 @@ function RegistrationPage() {
         }
     };
 
-
     const geometryLibReady = typeof window !== 'undefined' && !!window.google?.maps?.geometry;
 
     const handleMapClick = (e) => {
@@ -51,7 +52,6 @@ function RegistrationPage() {
 
         const newPos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
         
-        // Check if location is inside the polygon
         const isInside = window.google.maps.geometry.poly.containsLocation(
             e.latLng, 
             new window.google.maps.Polygon({ paths: selectedZone.coordinates })
@@ -76,28 +76,33 @@ function RegistrationPage() {
         setLocalStatus({ message: "Registering camera...", isError: false });
         
         try {
-            const response = await fetch('http://localhost:5000/api/zones/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    password, cameraID, cameraType, 
-                    tollZoneId: selectedZone.id, 
-                    tollZoneName: selectedZone.name,
-                    location: cameraLocation
-                }),
+            // 2. USE API.POST INSTEAD OF FETCH
+            // This targets: https://your-render-url.com/api/zones/register
+            const response = await api.post('/zones/register', {
+                password, 
+                cameraID, 
+                cameraType, 
+                tollZoneId: selectedZone.id, 
+                tollZoneName: selectedZone.name,
+                location: cameraLocation
             });
-            const data = await response.json();
+
+            // Axios automatically parses JSON into 'data'
+            const data = response.data;
             
             if (data.success) {
                 setLocalStatus({ message: data.message, isError: false });
-                setCameraID(''); setPassword(''); setCameraLocation(null);
-                // No need to reload zones, App.jsx useEffect handles it.
+                setCameraID(''); 
+                setPassword(''); 
+                setCameraLocation(null);
             } else {
-                setLocalStatus({ message: data.message, isError: true });
+                setLocalStatus({ message: data.message || "Registration failed.", isError: true });
             }
         } catch (error) {
             console.error('Failed to register camera:', error);
-            setLocalStatus({ message: "Network Error: Could not reach the server.", isError: true });
+            // 3. IMPROVED ERROR HANDLING
+            const errMsg = error.response?.data?.message || "Network Error: Could not reach the server.";
+            setLocalStatus({ message: errMsg, isError: true });
         }
     };
 
@@ -116,9 +121,21 @@ function RegistrationPage() {
                         ))}
                     </select>
                 </div>
-                <div className="form-group"><label htmlFor="register-camera-id" className="form-label">Camera ID (Login Username)</label><input type="text" id="register-camera-id" className="form-input" placeholder="e.g., CAM-01 (Unique)" value={cameraID} onChange={(e) => setCameraID(e.target.value)} /></div>
-                <div className="form-group"><label htmlFor="register-password" className="form-label">Password</label><input type="password" id="register-password" className="form-input" placeholder="Min. 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-                <div className="form-group"><label htmlFor="register-camera-type" className="form-label">Camera Type</label><select id="register-camera-type" className="form-input" value={cameraType} onChange={(e) => setCameraType(e.target.value)}><option value="INTERMEDIATE">Intermediate Point</option><option value="EDGE">Edge Point (Entry/Exit)</option></select></div>
+                <div className="form-group">
+                    <label htmlFor="register-camera-id" className="form-label">Camera ID (Login Username)</label>
+                    <input type="text" id="register-camera-id" className="form-input" placeholder="e.g., CAM-01 (Unique)" value={cameraID} onChange={(e) => setCameraID(e.target.value)} />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="register-password" className="form-label">Password</label>
+                    <input type="password" id="register-password" className="form-input" placeholder="Min. 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="register-camera-type" className="form-label">Camera Type</label>
+                    <select id="register-camera-type" className="form-input" value={cameraType} onChange={(e) => setCameraType(e.target.value)}>
+                        <option value="INTERMEDIATE">Intermediate Point</option>
+                        <option value="EDGE">Edge Point (Entry/Exit)</option>
+                    </select>
+                </div>
                 
                 <p className="form-label">Click inside the toll zone to set the camera's location:</p>
                 <div id="map">
@@ -128,8 +145,6 @@ function RegistrationPage() {
                         zoom={selectedZone ? 14 : 12}
                         onClick={handleMapClick}
                     >
-                        // RegistrationPage.jsx
-
                         {selectedZone && (
                             <Polygon
                                 paths={selectedZone.coordinates}
@@ -138,20 +153,22 @@ function RegistrationPage() {
                                     strokeOpacity: 0.8,
                                     strokeWeight: 2,
                                     fillColor: "#00bcd4",
-                                    fillOpacity: 0.1, // Reduced opacity for better visibility
-                                    clickable: false, // <--- ADD THIS LINE
+                                    fillOpacity: 0.1,
+                                    clickable: false,
                                 }}
                             />
                         )}
-                                                {cameraLocation && <Marker position={cameraLocation} />}
+                        {cameraLocation && <Marker position={cameraLocation} />}
                     </GoogleMap>
                 </div>
                 
                 <button type="submit" id="register-camera-btn" className="btn" style={{marginTop: '1rem'}} disabled={!cameraLocation || !selectedZoneId}>Register Operator</button>
             </form>
-            <div id="reg-status" className={`status-box ${localStatus.isError ? 'status-error' : 'status-warning'}`}>
-                {localStatus.message}
-            </div>
+            {localStatus.message && (
+                <div id="reg-status" className={`status-box ${localStatus.isError ? 'status-error' : 'status-warning'}`}>
+                    {localStatus.message}
+                </div>
+            )}
             <button onClick={() => navigate('/')} className="btn btn-gray" style={{marginTop: '0.5rem'}}>Back to Menu</button>
         </section>
     );
