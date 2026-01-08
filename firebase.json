@@ -1,13 +1,10 @@
 {
   "hosting": {
-    "public": "client/dist",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ],
-    "predeploy": [
-      "cd client && npm install && npm run build"
     ],
     "rewrites": [
       {
