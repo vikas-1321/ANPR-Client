@@ -16,7 +16,7 @@ jobs:
       - name: Install and Build
         run: |
           # Change 'client' to exactly what you see in the 'Debug' log above
-           
+           cd client
           npm install
           npm run build
         env:
