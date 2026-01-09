@@ -2,7 +2,7 @@ import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../context/AppContext'; 
 import { useNavigate } from 'react-router-dom';
 // 1. IMPORT YOUR API INSTANCE
-import api from '../config/api';; 
+import api from '../config/api'; 
 
 function LoginPage() {
     const { zones, setLoggedInOperator } = useContext(AppContext);
@@ -16,7 +16,18 @@ function LoginPage() {
         () => zones.find(zone => zone.id === selectedZoneId) || null,
         [zones, selectedZoneId]
     );
-
+    useEffect(() => {
+    const fetchZones = async () => {
+        try {
+            const response = await api.get('/zones');
+            setZones(response.data); // Axios uses .data
+            setIsLoaded(true);
+        } catch (error) {
+            console.error("Failed to fetch zones:", error);
+        }
+    };
+    fetchZones();
+}, []);
     const cameraOptions = useMemo(() => {
         if (!selectedZone) return [];
         return Object.keys(selectedZone.operators || {});
