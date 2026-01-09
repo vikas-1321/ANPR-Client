@@ -1,4 +1,11 @@
-// src/config/api.js
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import axios from 'axios';
 
-export default API_URL;
+const api = axios.create({
+    // VITE_API_URL must be https://anpr-server.onrender.com/api
+    baseURL: import.meta.env.VITE_API_URL,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
+
+export default api;

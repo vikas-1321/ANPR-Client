@@ -16,18 +16,7 @@ function LoginPage() {
         () => zones.find(zone => zone.id === selectedZoneId) || null,
         [zones, selectedZoneId]
     );
-    useEffect(() => {
-    const fetchZones = async () => {
-        try {
-            const response = await api.get('/zones');
-            setZones(response.data); // Axios uses .data
-            setIsLoaded(true);
-        } catch (error) {
-            console.error("Failed to fetch zones:", error);
-        }
-    };
-    fetchZones();
-}, []);
+    
     const cameraOptions = useMemo(() => {
         if (!selectedZone) return [];
         return Object.keys(selectedZone.operators || {});
